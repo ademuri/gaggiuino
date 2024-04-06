@@ -14,11 +14,11 @@
 #define dimmerPin     PA1
 #define steamPin      PC15
 #define valvePin      PC13
-#if defined(SINGLE_BOARD)
-#define waterPin      PB15
-#else
-#define waterPin      PA12
-#endif
+// #if defined(SINGLE_BOARD)
+// #define waterPin      PB15
+// #else
+// #define waterPin      PA12
+// #endif
 
 #ifdef PCBV2
 // PCB V2
@@ -33,5 +33,7 @@
 #define USART_LCD     Serial2 // PA2(TX) & PA3(RX)
 #define USART_ESP     Serial1 // PA9(TX) & PA10(RX)
 #define USART_DEBUG   Serial  // USB-CDC (Takes PA8,PA9,PA10,PA11)
+
+constexpr int kLedPin = PB15;
 
 #endif

@@ -74,6 +74,9 @@ unsigned long scalesTimer;
 unsigned long flowTimer;
 unsigned long steamTime;
 
+constexpr unsigned long kLedTimeout = 15 * 60 * 1000;
+unsigned long ledTimer = kLedTimeout;
+
 //scales vars
 Measurements weightMeasurements(4);
 

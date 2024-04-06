@@ -274,6 +274,10 @@ static void pageValuesRefresh() {
   lcdLastCurrentPageId = lcdCurrentPageId;
 }
 
+void resetLedTimer() {
+  ledTimer = millis() + kLedTimeout;
+}
+
 //#############################################################################################
 //############################____OPERATIONAL_MODE_CONTROL____#################################
 //#############################################################################################
@@ -298,17 +302,20 @@ static void modeSelect(void) {
         profiling();
         steamTime = millis();
       }
+      resetLedTimer();
       break;
     case OPERATION_MODES::OPMODE_manual:
       nonBrewModeActive = false;
       if (!currentState.steamSwitchState) steamTime = millis();
       manualFlowControl();
+      resetLedTimer();
       break;
     case OPERATION_MODES::OPMODE_flush:
       nonBrewModeActive = true;
       if (!currentState.steamSwitchState) steamTime = millis();
       backFlush(currentState);
       brewActive ? setBoilerOff() : justDoCoffee(runningCfg, currentState, false);
+      resetLedTimer();
       break;
     case OPERATION_MODES::OPMODE_steam:
       nonBrewModeActive = true;
@@ -319,16 +326,20 @@ static void modeSelect(void) {
         steamCtrl(runningCfg, currentState);
         pageValuesRefresh();
       }
+      resetLedTimer();
       break;
     case OPERATION_MODES::OPMODE_descale:
       nonBrewModeActive = true;
       if (!currentState.steamSwitchState) steamTime = millis();
       deScale(runningCfg, currentState);
+      resetLedTimer();
       break;
     default:
       pageValuesRefresh();
       break;
   }
+
+  setLed(ledTimer > millis());
 }
 
 //#############################################################################################

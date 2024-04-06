@@ -24,6 +24,8 @@ static inline void pinInit(void) {
   #ifdef waterPin
   pinMode(waterPin, INPUT_PULLUP);
   #endif
+
+  pinMode(kLedPin, OUTPUT);
 }
 
 // Actuating the heater element
@@ -93,6 +95,10 @@ static inline void closeValve(void) {
   #else
     digitalWrite(valvePin, LOW);
   #endif
+}
+
+static void setLed(bool on) {
+  digitalWrite(kLedPin, on);
 }
 
 #endif
