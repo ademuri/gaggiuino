@@ -5,6 +5,8 @@
 #endif
 #include "gaggiuino.h"
 
+constexpr bool kReleasePressure = false;
+
 SimpleKalmanFilter smoothPressure(0.6f, 0.6f, 0.1f);
 SimpleKalmanFilter smoothPumpFlow(0.1f, 0.1f, 0.01f);
 SimpleKalmanFilter smoothScalesFlow(0.5f, 0.5f, 0.01f);
@@ -827,59 +829,61 @@ static inline void sysHealthCheck(float pressureThreshold) {
     currentState.isSteamForgottenON = currentState.steamSwitchState;
   }
 
-  //Releasing the excess pressure after steaming or brewing if necessary
-  #if defined LEGO_VALVE_RELAY || defined SINGLE_BOARD
+  if (kReleasePressure) {
+    //Releasing the excess pressure after steaming or brewing if necessary
+    #if defined LEGO_VALVE_RELAY || defined SINGLE_BOARD
 
-  // No point going through the whole thing if this first condition isn't met.
-  if (currentState.brewSwitchState || currentState.steamSwitchState || currentState.hotWaterSwitchState) {
-    systemHealthTimer = millis() + HEALTHCHECK_EVERY;
-    return;
-  }
-  // Should enter the block every "systemHealthTimer" seconds
-  if (millis() >= systemHealthTimer) {
-    while (currentState.smoothedPressure >= pressureThreshold && currentState.temperature < 100.f)
-    {
-      //Reloading the watchdog timer, if this function fails to run MCU is rebooted
-      watchdogReload();
-      switch (lcdCurrentPageId) {
-        case NextionPage::BrewManual:
-        case NextionPage::BrewGraph:
-        case NextionPage::GraphPreview:
-          brewDetect();
-          lcdRefresh();
-          lcdListen();
-          sensorsRead();
-          justDoCoffee(runningCfg, currentState, brewActive);
-          break;
-        default:
-          sensorsRead();
-          lcdShowPopup("Releasing pressure!");
-          setPumpOff();
-          setBoilerOff();
-          setSteamValveRelayOff();
-          setSteamBoilerRelayOff();
-          openValve();
-          break;
+    // No point going through the whole thing if this first condition isn't met.
+    if (currentState.brewSwitchState || currentState.steamSwitchState || currentState.hotWaterSwitchState) {
+      systemHealthTimer = millis() + HEALTHCHECK_EVERY;
+      return;
+    }
+    // Should enter the block every "systemHealthTimer" seconds
+    if (millis() >= systemHealthTimer) {
+      while (currentState.smoothedPressure >= pressureThreshold && currentState.temperature < 100.f)
+      {
+        //Reloading the watchdog timer, if this function fails to run MCU is rebooted
+        watchdogReload();
+        switch (lcdCurrentPageId) {
+          case NextionPage::BrewManual:
+          case NextionPage::BrewGraph:
+          case NextionPage::GraphPreview:
+            brewDetect();
+            lcdRefresh();
+            lcdListen();
+            sensorsRead();
+            justDoCoffee(runningCfg, currentState, brewActive);
+            break;
+          default:
+            sensorsRead();
+            lcdShowPopup("Releasing pressure!");
+            setPumpOff();
+            setBoilerOff();
+            setSteamValveRelayOff();
+            setSteamBoilerRelayOff();
+            openValve();
+            break;
+        }
+      }
+      closeValve();
+      systemHealthTimer = millis() + HEALTHCHECK_EVERY;
+    }
+    // Throwing a pressure release countodown.
+    if (lcdCurrentPageId == NextionPage::BrewGraph) return;
+    if (lcdCurrentPageId == NextionPage::BrewManual) return;
+
+    if (currentState.smoothedPressure >= pressureThreshold && currentState.temperature < 100.f) {
+      if (millis() >= systemHealthTimer - 3500ul && millis() <= systemHealthTimer - 500ul) {
+        char tmp[25];
+        int countdown = (int)(systemHealthTimer-millis())/1000;
+        unsigned int check = snprintf(tmp, sizeof(tmp), "Dropping beats in: %i", countdown);
+        if (check > 0 && check <= sizeof(tmp)) {
+          lcdShowPopup(tmp);
+        }
       }
     }
-    closeValve();
-    systemHealthTimer = millis() + HEALTHCHECK_EVERY;
+    #endif
   }
-  // Throwing a pressure release countodown.
-  if (lcdCurrentPageId == NextionPage::BrewGraph) return;
-  if (lcdCurrentPageId == NextionPage::BrewManual) return;
-
-  if (currentState.smoothedPressure >= pressureThreshold && currentState.temperature < 100.f) {
-    if (millis() >= systemHealthTimer - 3500ul && millis() <= systemHealthTimer - 500ul) {
-      char tmp[25];
-      int countdown = (int)(systemHealthTimer-millis())/1000;
-      unsigned int check = snprintf(tmp, sizeof(tmp), "Dropping beats in: %i", countdown);
-      if (check > 0 && check <= sizeof(tmp)) {
-        lcdShowPopup(tmp);
-      }
-    }
-  }
-  #endif
 }
 
 // Function to track time since system has started
